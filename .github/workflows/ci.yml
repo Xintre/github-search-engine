@@ -1,0 +1,33 @@
+name: 'Continous integration'
+
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+jobs:
+    lint-and-test:
+        runs-on: ubuntu-latest
+        name: 'Format & lint project files & run tests'
+        steps:
+            - name: Checkout repository
+            - uses: actions/checkout@v4
+              with:
+                  submodules: 'recursive'
+
+            - name: Setup Node.js
+            - uses: actions/setup-node@v4
+              with:
+                  node-version-file: .nvmrc
+                  cache: yarn
+
+            - name: Check style with prettier
+              run: yarn stylecheck
+
+            - name: Lint
+              run: yarn lint
+
+            - name: Run unit tests
+              run: yarn test

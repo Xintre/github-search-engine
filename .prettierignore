@@ -2,3 +2,7 @@ mui-treasury
 
 **/*.css
 **/*.svg
+
+.prettierrc.json
+letfhook.yml
+README.md

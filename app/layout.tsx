@@ -2,6 +2,7 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { BackButton } from '@/components/BackButton';
 import { Geist } from 'next/font/google';
 import type { Metadata } from 'next';
+import { TanstackQueryProvider } from '@/components/providers/TanstackQueryProvider';
 import { ThemeProvider } from '@mui/material/styles';
 import { theme } from './theme';
 
@@ -30,15 +31,17 @@ export default function RootLayout({
 			</head>
 
 			<body className={geistSans.variable}>
-				<AppRouterCacheProvider>
-					<ThemeProvider theme={theme}>
-						<div>
-							<BackButton />
-						</div>
+				<TanstackQueryProvider>
+					<AppRouterCacheProvider>
+						<ThemeProvider theme={theme}>
+							<div>
+								<BackButton />
+							</div>
 
-						{children}
-					</ThemeProvider>
-				</AppRouterCacheProvider>
+							{children}
+						</ThemeProvider>
+					</AppRouterCacheProvider>
+				</TanstackQueryProvider>
 			</body>
 		</html>
 	);

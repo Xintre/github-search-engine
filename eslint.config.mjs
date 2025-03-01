@@ -13,6 +13,16 @@ const eslintConfig = [
 	{
 		ignores: ['mui-treasury'],
 	},
+	{
+		rules: {
+			'@typescript-eslint/no-empty-object-type': [
+				'error',
+				{
+					allowObjectTypes: 'always',
+				},
+			],
+		},
+	},
 	...compat.extends('next/core-web-vitals', 'next/typescript'),
 ];
 

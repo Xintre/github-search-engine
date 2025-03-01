@@ -1,10 +1,12 @@
+import { AppHeader } from '@/components/AppHeader';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
-import { BackButton } from '@/components/BackButton';
+import { CssBaseline } from '@mui/material';
 import { Geist } from 'next/font/google';
 import type { Metadata } from 'next';
 import { TanstackQueryProvider } from '@/components/providers/TanstackQueryProvider';
 import { ThemeProvider } from '@mui/material/styles';
-import { theme } from './theme';
+import { TokenContextWrapper } from '@/components/providers/TokenContextWrapper';
+import { theme } from '@/utils/theme';
 
 const geistSans = Geist({
 	variable: '--font-geist-sans',
@@ -34,11 +36,13 @@ export default function RootLayout({
 				<TanstackQueryProvider>
 					<AppRouterCacheProvider>
 						<ThemeProvider theme={theme}>
-							<div>
-								<BackButton />
-							</div>
+							<CssBaseline />
 
-							{children}
+							<AppHeader />
+
+							<TokenContextWrapper>
+								{children}
+							</TokenContextWrapper>
 						</ThemeProvider>
 					</AppRouterCacheProvider>
 				</TanstackQueryProvider>

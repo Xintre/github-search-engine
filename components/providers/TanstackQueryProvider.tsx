@@ -1,13 +1,13 @@
 'use client';
 
-import { PropsWithChildren, useMemo } from 'react';
+import { PropsWithChildren, ReactNode, useMemo } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 type TanstackQueryProviderProps = PropsWithChildren;
 
 export function TanstackQueryProvider({
 	children,
-}: TanstackQueryProviderProps) {
+}: TanstackQueryProviderProps): ReactNode {
 	const queryClient = useMemo(() => new QueryClient(), []);
 
 	return (

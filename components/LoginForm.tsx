@@ -1,17 +1,23 @@
 'use client';
 
 import { Button, TextField } from '@mui/material';
-import { useContext, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 
 import Divider from '@mui/material/Divider';
 import Link from 'next/link';
 import { TokenContext } from '@/app/context/TokenContext';
+import { validateToken } from '@/utils/validators';
 
 export type LoginFormProps = {};
 
 export function LoginForm({}: LoginFormProps) {
 	const [tokenBuffer, setTokenBuffer] = useState('');
 	const { setToken } = useContext(TokenContext);
+
+	const isTokenValid = useMemo(() => {
+		return validateToken(tokenBuffer);
+	}, [tokenBuffer]);
+	console.log('is token valid', isTokenValid);
 
 	return (
 		<div
@@ -26,25 +32,35 @@ export function LoginForm({}: LoginFormProps) {
 			}}
 		>
 			<h2>Please pass the token 🔑</h2>
-			<Divider variant="middle"></Divider>
+
+			<Divider variant="middle" />
+
 			<TextField
 				id="outlined-required"
+				sx={{ width: 400 }}
 				label="Token"
 				variant="outlined"
 				value={tokenBuffer}
 				onChange={(event) => setTokenBuffer(event.target.value)}
+				error={tokenBuffer && !isTokenValid}
+				helperText={
+					tokenBuffer && !isTokenValid
+						? 'Please specify a valid token'
+						: ''
+				}
 			/>
+
 			<Button
 				type="submit"
 				variant="contained"
 				color="primary"
 				onClick={() => setToken(tokenBuffer)}
-				// disabled= check if token is proper
+				disabled={!isTokenValid}
 			>
 				Sign In
 			</Button>
 
-			<Link href="/users">Users</Link>
+			{/* <Link href="/users">Users</Link> */}
 		</div>
 	);
 }

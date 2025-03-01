@@ -37,10 +37,9 @@ export default function RootLayout({
 					<AppRouterCacheProvider>
 						<ThemeProvider theme={theme}>
 							<CssBaseline />
-
-							<AppHeader />
-
 							<TokenContextWrapper>
+								<AppHeader />
+
 								{children}
 							</TokenContextWrapper>
 						</ThemeProvider>

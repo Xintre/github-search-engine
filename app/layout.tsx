@@ -1,11 +1,12 @@
+import { CssBaseline, Stack } from '@mui/material';
+
 import { AppHeader } from '@/components/AppHeader';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
-import { CssBaseline } from '@mui/material';
+import { ClientComponentWrapper } from '@/components/providers/ClientComponentWrapper';
 import { Geist } from 'next/font/google';
 import type { Metadata } from 'next';
 import { TanstackQueryProvider } from '@/components/providers/TanstackQueryProvider';
 import { ThemeProvider } from '@mui/material/styles';
-import { TokenContextWrapper } from '@/components/providers/TokenContextWrapper';
 import { theme } from '@/utils/theme';
 
 const geistSans = Geist({
@@ -37,11 +38,14 @@ export default function RootLayout({
 					<AppRouterCacheProvider>
 						<ThemeProvider theme={theme}>
 							<CssBaseline />
-							<TokenContextWrapper>
+
+							<ClientComponentWrapper>
 								<AppHeader />
 
-								{children}
-							</TokenContextWrapper>
+								<Stack gap={4} paddingTop={4} paddingBottom={4}>
+									{children}
+								</Stack>
+							</ClientComponentWrapper>
 						</ThemeProvider>
 					</AppRouterCacheProvider>
 				</TanstackQueryProvider>

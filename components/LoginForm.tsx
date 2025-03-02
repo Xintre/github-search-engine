@@ -1,11 +1,18 @@
 'use client';
 
-import { Button, TextField } from '@mui/material';
-import { useContext, useMemo, useState } from 'react';
+import {
+	Button,
+	CircularProgress,
+	Container,
+	TextField,
+	Typography,
+} from '@mui/material';
+import { useContext, useEffect, useMemo, useState } from 'react';
 
 import Divider from '@mui/material/Divider';
-import Link from 'next/link';
+import { GH_API_TOKEN_COOKIE_NAME } from '@/utils/constants';
 import { TokenContext } from '@/app/context/TokenContext';
+import { useCookies } from 'react-cookie';
 import { validateToken } from '@/utils/validators';
 
 export type LoginFormProps = {};
@@ -13,14 +20,32 @@ export type LoginFormProps = {};
 export function LoginForm({}: LoginFormProps) {
 	const [tokenBuffer, setTokenBuffer] = useState('');
 	const { setToken } = useContext(TokenContext);
+	const [loading, setLoading] = useState(true);
 
-	const isTokenValid = useMemo(() => {
-		return validateToken(tokenBuffer);
-	}, [tokenBuffer]);
-	console.log('is token valid', isTokenValid);
+	const [cookies, setCookie] = useCookies([GH_API_TOKEN_COOKIE_NAME]);
+
+	const isTokenValid = useMemo(
+		() => validateToken(tokenBuffer),
+		[tokenBuffer]
+	);
+
+	const showTokenError = useMemo(
+		() => tokenBuffer.length != 0 && !isTokenValid,
+		[isTokenValid, tokenBuffer.length]
+	);
+
+	useEffect(() => {
+		const maybeTokenCookie = cookies[GH_API_TOKEN_COOKIE_NAME];
+
+		if (maybeTokenCookie !== undefined) {
+			setToken(maybeTokenCookie);
+		}
+
+		setLoading(false);
+	}, [cookies, setToken]);
 
 	return (
-		<div
+		<form
 			style={{
 				display: 'flex',
 				flexDirection: 'column',
@@ -29,38 +54,54 @@ export function LoginForm({}: LoginFormProps) {
 				maxWidth: '350',
 				margin: 'auto',
 				padding: '20px',
+				justifyContent: 'center',
+			}}
+			onSubmit={() => {
+				if (isTokenValid) {
+					setCookie(GH_API_TOKEN_COOKIE_NAME, tokenBuffer);
+
+					setToken(tokenBuffer);
+				}
 			}}
 		>
-			<h2>Please pass the token 🔑</h2>
+			{loading ? (
+				<>
+					<Typography>Checking cookie...</Typography>
 
-			<Divider variant="middle" />
+					<CircularProgress size={40} />
+				</>
+			) : (
+				<>
+					<h2>Please pass the token 🔑</h2>
 
-			<TextField
-				id="outlined-required"
-				sx={{ width: 400 }}
-				label="Token"
-				variant="outlined"
-				value={tokenBuffer}
-				onChange={(event) => setTokenBuffer(event.target.value)}
-				error={tokenBuffer && !isTokenValid}
-				helperText={
-					tokenBuffer && !isTokenValid
-						? 'Please specify a valid token'
-						: ''
-				}
-			/>
+					<Container maxWidth="md">
+						<Divider variant="middle" flexItem />
+					</Container>
 
-			<Button
-				type="submit"
-				variant="contained"
-				color="primary"
-				onClick={() => setToken(tokenBuffer)}
-				disabled={!isTokenValid}
-			>
-				Sign In
-			</Button>
+					<TextField
+						id="outlined-required"
+						sx={{ width: 400 }}
+						label="Token"
+						variant="outlined"
+						value={tokenBuffer}
+						onChange={(event) => setTokenBuffer(event.target.value)}
+						error={showTokenError}
+						helperText={
+							showTokenError ? 'Please specify a valid token' : ''
+						}
+					/>
 
-			{/* <Link href="/users">Users</Link> */}
-		</div>
+					<Button
+						type="submit"
+						variant="contained"
+						color="primary"
+						role="submit"
+						disabled={!isTokenValid}
+					>
+						Sign In
+					</Button>
+				</>
+			)}
+		</form>
 	);
 }

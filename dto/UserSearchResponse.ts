@@ -1,4 +1,4 @@
-import { SearchedUser } from './User';
+import { SearchedUser } from './SearchedUser';
 
 export type UserSearchResponse = {
 	total_count: number;

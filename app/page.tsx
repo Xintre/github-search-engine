@@ -78,8 +78,8 @@ const gridColumnsDefFactory: (
 		width: 100,
 	},
 	{
-		field: 'repos',
-		headerName: 'Go to repositories',
+		field: 'usersCard',
+		headerName: `Go to user's card`,
 		sortable: false,
 		width: 150,
 		renderCell: (params) => (
@@ -88,7 +88,7 @@ const gridColumnsDefFactory: (
 					router.push(params.row.login);
 				}}
 			>
-				repos
+				card
 			</Button>
 		),
 	},
@@ -120,26 +120,23 @@ const PROFILE_TYPE_OPTIONS: {
 		tooltip: 'Users only',
 	},
 	{
-		Icon: Workspaces,
-		value: ProfileTypeFilter.ALL,
-		tooltip: 'All (both users and organizations)',
-	},
-	{
 		Icon: CorporateFare,
 		value: ProfileTypeFilter.ORGANIZATIONS,
 		tooltip: 'Organizations only',
+	},
+	{
+		Icon: Workspaces,
+		value: ProfileTypeFilter.ALL,
+		tooltip: 'All (both users and organizations)',
 	},
 ];
 
 export default function UsersScreen() {
 	const [filter, setFilter] = useState('');
 	const [filterBuffer, setFilterBuffer] = useState('');
+	const [totalCount, setTotalCount] = useState(0);
 	const [profileTypeFilter, setProfileTypeFilter] =
 		useState<ProfileTypeFilter>(ProfileTypeFilter.ALL);
-	// I would use the below if GH API would support sorting users
-	// const [sortInfo, setSortInfo] = useState<GridSortModel[number] | null>(
-	// 	null
-	// );
 	const [paginationInfo, setPaginationInfo] = useState<GridPaginationModel>({
 		page: 0,
 		pageSize: DATA_GRID_PAGE_SIZES[0],
@@ -170,7 +167,7 @@ export default function UsersScreen() {
 			queryFn: async () => {
 				const urlSearchParams = new URLSearchParams();
 
-				// query & type filter + sorting
+				// query & type filter
 				urlSearchParams.append(
 					'q',
 					[
@@ -190,7 +187,10 @@ export default function UsersScreen() {
 				);
 
 				// pagination
-				urlSearchParams.append('page', paginationInfo.page.toString());
+				urlSearchParams.append(
+					'page',
+					(paginationInfo.page + 1).toString()
+				);
 				urlSearchParams.append(
 					'per_page',
 					paginationInfo.pageSize.toString()
@@ -208,20 +208,15 @@ export default function UsersScreen() {
 					);
 				}
 
+				// store the total count in a separate state var so when
+				// the data is being fetched again on page change, MUI
+				// does not receive 0 total items for a while which
+				// would case it to reset the page to 0 as well
+				setTotalCount(response.data.total_count);
+
 				return response.data;
 			},
 		});
-
-	// const handleSortModelChange = useCallback((sortModel: GridSortModel) => {
-	// 	setSortInfo(sortModel.length ? sortModel[0] : null);
-	// }, []);
-
-	const handlePaginationModelChange = useCallback(
-		(paginationModel: GridPaginationModel) => {
-			setPaginationInfo(paginationModel);
-		},
-		[]
-	);
 
 	// log data fetching error to console effect
 	useEffect(() => {
@@ -229,6 +224,7 @@ export default function UsersScreen() {
 
 		console.error('Error fetching data', error);
 	}, [error]);
+	console.log({ paginationInfo });
 
 	return (
 		<Container style={{ width: '80%' }}>
@@ -296,21 +292,19 @@ export default function UsersScreen() {
 
 			<DataGrid
 				rows={data?.items}
-				rowCount={data?.total_count ?? 0}
+				rowCount={totalCount}
 				columns={columnsDef}
 				initialState={{
 					pagination: {
 						paginationModel: {
-							pageSize: DATA_GRID_PAGE_SIZES[0],
+							pageSize: DATA_GRID_PAGE_SIZES[1],
 						},
 					},
 				}}
 				pageSizeOptions={DATA_GRID_PAGE_SIZES}
 				paginationMode="server"
-				onPaginationModelChange={handlePaginationModelChange}
+				onPaginationModelChange={setPaginationInfo}
 				loading={isLoading}
-				sortingMode="server"
-				// onSortModelChange={handleSortModelChange}
 			/>
 		</Container>
 	);

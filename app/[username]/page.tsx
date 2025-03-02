@@ -1,6 +1,12 @@
 'use client';
 
 import {
+	CalendarMonth,
+	CollectionsBookmark,
+	Groups,
+	RunCircle,
+} from '@mui/icons-material';
+import {
 	Card,
 	CardActionArea,
 	CardActions,
@@ -17,24 +23,98 @@ import {
 	DATA_GRID_PAGE_SIZES,
 	TEST_DISABLE_USEQUERY_CACHING,
 } from '@/utils/constants';
-import { use, useContext } from 'react';
+import {
+	DataGrid,
+	GridColDef,
+	GridPaginationModel,
+	GridSortModel,
+} from '@mui/x-data-grid';
+import {
+	use,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
+} from 'react';
 
-import { CollectionsBookmark } from '@mui/icons-material';
 import { OpenGHProfileButton } from '@/components/OpenGHProfileButton';
+import { Repository } from '@/dto/Repository';
 import { TokenContext } from '@/context/TokenContext';
 import { User } from '@/dto/User';
 import { fetchGET } from '@/utils/apiClient';
 import moment from 'moment';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 
+const gridColumnsDefFactory: (
+	router: ReturnType<typeof useRouter>
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+) => GridColDef<Repository>[] = (_router) => [
+	{
+		field: 'name',
+		headerName: `Repo's name`,
+		sortable: true,
+		width: 250,
+	},
+	{
+		field: 'id',
+		headerName: 'ID',
+		sortable: false,
+	},
+	{
+		field: 'description',
+		headerName: 'Description',
+		sortable: false,
+		width: 600,
+		valueFormatter: (params) => {
+			return params === null ? 'No description provided' : params;
+		},
+	},
+	{
+		field: 'created_at',
+		headerName: 'Created at',
+		sortable: false,
+		width: 100,
+		valueFormatter: (params) => moment(params).format('MMM YYYY'),
+	},
+	{
+		field: 'language',
+		headerName: 'Language',
+		sortable: false,
+		width: 150,
+		valueFormatter: (params) => {
+			return params === null ? 'No language info' : params;
+		},
+	},
+	{
+		field: 'html_url',
+		headerName: 'Go to repo',
+		sortable: false,
+		width: 100,
+		renderCell: (params) => (
+			<OpenGHProfileButton link={params.row.html_url} />
+		),
+	},
+];
 export default function UserDetailsAndRepos({
 	params,
 }: {
 	params: Promise<{ username: string }>;
 }) {
 	const { username } = use(params);
-
 	const { token } = useContext(TokenContext);
+	const [sortInfo, setSortInfo] = useState<GridSortModel[number] | null>(
+		null
+	);
+
+	const router = useRouter();
+	const columnsDef = useMemo(() => gridColumnsDefFactory(router), [router]);
+
+	const [paginationInfo, setPaginationInfo] = useState<GridPaginationModel>({
+		page: 0,
+		pageSize: DATA_GRID_PAGE_SIZES[0],
+	});
 
 	const {
 		isError: isUserError,
@@ -61,116 +141,239 @@ export default function UserDetailsAndRepos({
 		},
 	});
 
+	const {
+		isError: isRepositoriesError,
+		error: repositoriesError,
+		isLoading: isLoadingRepositories,
+		data: repositoriesData,
+	} = useQuery({
+		queryKey: [
+			'repositories',
+			paginationInfo.page,
+			paginationInfo.pageSize,
+		],
+		gcTime: TEST_DISABLE_USEQUERY_CACHING ? 0 : undefined,
+		queryFn: async () => {
+			const urlSearchParams = new URLSearchParams();
+
+			// pagination
+			urlSearchParams.append(
+				'page',
+				(paginationInfo.page + 1).toString()
+			);
+			urlSearchParams.append(
+				'per_page',
+				paginationInfo.pageSize.toString()
+			);
+
+			// sorting
+			if (sortInfo && sortInfo.sort) {
+				urlSearchParams.append('sort', sortInfo.field);
+				urlSearchParams.append('order', sortInfo.sort);
+			}
+
+			const response = await fetchGET<Repository[]>({
+				url: `/users/${username}/repos?${urlSearchParams.toString()}`,
+				token: token!,
+			});
+
+			// notify useQuery that we failed
+			if (response.statusCode !== 200) {
+				throw new Error(
+					`${response.statusCode} ${response.statusText}`
+				);
+			}
+
+			return response.data;
+		},
+	});
+	const handleSortModelChange = useCallback((sortModel: GridSortModel) => {
+		setSortInfo(sortModel.length ? sortModel[0] : null);
+	}, []);
+
+	// log user data fetching error to console effect
+	useEffect(() => {
+		if (!userError) return;
+
+		console.error('Error fetching user data', userError);
+	}, [userError]);
+
+	// log repository data fetching error to console effect
+	useEffect(() => {
+		if (!repositoriesError) return;
+
+		console.error('Error fetching repositories data', repositoriesError);
+	}, [repositoriesError]);
+
 	return (
-		<Stack justifyContent="center" direction="row">
+		<Stack
+			justifyContent="center"
+			direction="row"
+			alignContent={'space-between'}
+			gap={5}
+			marginLeft={10}
+			marginRight={10}
+		>
 			{isUserError ? (
 				<Typography variant="h6" color="error">
 					{userError.message}
 				</Typography>
 			) : (
-				<Card sx={{ maxWidth: 345 }}>
-					<CardActionArea
-						onClick={() => {
-							window.open(
-								user?.html_url,
-								'_blank',
-								'noopener noreferrer'
-							);
-						}}
-					>
-						{isLoadingUser ? (
-							<Skeleton
-								animation="wave"
-								variant="circular"
-								width={40}
-								height={40}
-							/>
-						) : (
-							<CardMedia
-								component="img"
-								image={user?.avatar_url}
-							/>
-						)}
-					</CardActionArea>
-
-					<CardContent component={Stack} gap={1}>
-						<Typography gutterBottom variant="h5" component="div">
-							{user ? `${user.name} (${user.login})` : username}
-						</Typography>
-
-						<Link
-							href={user?.blog === '' ? undefined : user?.blog}
-							target="_blank"
-							rel="noopener noreferrer"
+				<>
+					<Card sx={{ maxWidth: 345 }}>
+						<CardActionArea
+							onClick={() => {
+								window.open(
+									user?.html_url,
+									'_blank',
+									'noopener noreferrer'
+								);
+							}}
 						>
-							{user?.blog === ''
-								? 'No blog provided'
-								: user?.blog}
-						</Link>
+							{isLoadingUser ? (
+								<Skeleton
+									animation="wave"
+									variant="circular"
+									width={40}
+									height={40}
+								/>
+							) : (
+								<CardMedia
+									component="img"
+									image={user?.avatar_url}
+								/>
+							)}
+						</CardActionArea>
 
-						<Divider sx={{ mt: 1, mb: 2 }} />
+						<CardContent component={Stack} gap={1}>
+							<Typography
+								gutterBottom
+								variant="h5"
+								component="div"
+							>
+								{user
+									? `${user.name} (${user.login})`
+									: username}
+							</Typography>
 
-						<Stack
-							justifyContent="space-evenly"
-							alignItems="flex-start"
-							direction="row"
-							flexWrap="wrap"
-							rowGap={2}
-						>
-							<Chip
-								icon={<CollectionsBookmark />}
-								onClick={() => {
-									const urlSearchParams =
-										new URLSearchParams();
+							<Link
+								href={
+									user?.blog === '' ? undefined : user?.blog
+								}
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								{user?.blog === ''
+									? 'No blog provided'
+									: user?.blog}
+							</Link>
 
-									urlSearchParams.append(
-										'tab',
-										'repositories'
-									);
+							<Divider sx={{ mt: 1, mb: 2 }} />
 
-									window.open(
-										`${user?.html_url}?${urlSearchParams.toString()}`,
-										'_blank',
-										'noopener noreferrer'
-									);
-								}}
-								label={`${user?.public_repos} repositories`}
-							/>
+							<Stack
+								justifyContent="space-evenly"
+								alignItems="flex-start"
+								direction="row"
+								flexWrap="wrap"
+								rowGap={2}
+							>
+								<Chip
+									icon={<CollectionsBookmark />}
+									onClick={() => {
+										const urlSearchParams =
+											new URLSearchParams();
 
-							<Chip
-								icon={<CollectionsBookmark />}
-								label={`${user?.following} followers`}
-							/>
+										urlSearchParams.append(
+											'tab',
+											'repositories'
+										);
 
-							<Chip
-								icon={<CollectionsBookmark />}
-								label={`${user?.following} following`}
-							/>
+										window.open(
+											`${user?.html_url}?${urlSearchParams.toString()}`,
+											'_blank',
+											'noopener noreferrer'
+										);
+									}}
+									label={`${user?.public_repos} repositories`}
+									sx={{
+										backgroundColor: '#24272B',
+										color: 'white',
+									}}
+								/>
 
-							<Chip
-								icon={<CollectionsBookmark />}
-								label={`Member since ${moment(user?.created_at).format('MMM YYYY')}`}
-							/>
-						</Stack>
+								<Chip
+									icon={<Groups />}
+									label={`${user?.followers} followers`}
+									sx={{
+										backgroundColor: '#197278',
+										color: 'white',
+									}}
+								/>
+
+								<Chip
+									icon={<RunCircle />}
+									label={`${user?.following} following`}
+									sx={{
+										backgroundColor: '#4B644A',
+										color: '#0F0326',
+									}}
+								/>
+
+								<Chip
+									icon={<CalendarMonth />}
+									label={`Member since ${moment(user?.created_at).format('MMM YYYY')}`}
+									sx={{
+										backgroundColor: '#57467B',
+										color: 'white',
+									}}
+								/>
+							</Stack>
+
+							<Divider sx={{ mt: 1.5, mb: 1 }} />
+
+							<Typography
+								variant="body1"
+								sx={{ color: 'text.secondary' }}
+							>
+								{user?.bio ?? 'No bio provided'}
+							</Typography>
+						</CardContent>
 
 						<Divider sx={{ mt: 1.5, mb: 1 }} />
 
-						<Typography
-							variant="body1"
-							sx={{ color: 'text.secondary' }}
-						>
-							{user?.bio ?? 'No bio provided'}
+						<CardActions>
+							<OpenGHProfileButton
+								link={user?.html_url ?? undefined}
+							/>
+						</CardActions>
+					</Card>
+
+					{isRepositoriesError ? (
+						<Typography variant="h3" color="error">
+							Error fetching repositories data:{' '}
+							{repositoriesError.message}
 						</Typography>
-					</CardContent>
-
-					<Divider sx={{ mt: 1.5, mb: 1 }} />
-
-					<CardActions>
-						<OpenGHProfileButton
-							link={user?.html_url ?? undefined}
+					) : (
+						<DataGrid
+							rows={repositoriesData}
+							rowCount={user?.public_repos ?? 0}
+							columns={columnsDef}
+							initialState={{
+								pagination: {
+									paginationModel: {
+										pageSize: DATA_GRID_PAGE_SIZES[0],
+									},
+								},
+							}}
+							pageSizeOptions={DATA_GRID_PAGE_SIZES}
+							paginationMode="server"
+							onPaginationModelChange={setPaginationInfo}
+							loading={isLoadingRepositories}
+							sortingMode="server"
+							onSortModelChange={handleSortModelChange}
 						/>
-					</CardActions>
-				</Card>
+					)}
+				</>
 			)}
 		</Stack>
 	);

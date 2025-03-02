@@ -16,6 +16,7 @@ const config: Config = {
 	coverageReporters: ['html', 'json', 'text-summary'],
 	coveragePathIgnorePatterns: ['mui_treasury'],
 	testPathIgnorePatterns: ['mui_treasury'],
+	setupFilesAfterEnv: ['<rootDir>/setupTests.ts'],
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

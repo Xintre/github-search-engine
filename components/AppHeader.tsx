@@ -5,7 +5,7 @@ import { AppBar, Box, IconButton, Toolbar, Typography } from '@mui/material';
 import { BackButton } from '@/components/BackButton';
 import { GH_API_TOKEN_COOKIE_NAME } from '@/utils/constants';
 import { Lock } from '@mui/icons-material';
-import { TokenContext } from '@/app/context/TokenContext';
+import { TokenContext } from '@/context/TokenContext';
 import { useContext } from 'react';
 import { useCookies } from 'react-cookie';
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { PropsWithChildren, useState } from 'react';
-import { TokenContext, TokenContextType } from '@/app/context/TokenContext';
+import { TokenContext, TokenContextType } from '@/context/TokenContext';
 
 import { CookiesProvider } from 'react-cookie';
 import { LoginForm } from '../LoginForm';

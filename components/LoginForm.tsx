@@ -11,7 +11,7 @@ import { useContext, useEffect, useMemo, useState } from 'react';
 
 import Divider from '@mui/material/Divider';
 import { GH_API_TOKEN_COOKIE_NAME } from '@/utils/constants';
-import { TokenContext } from '@/app/context/TokenContext';
+import { TokenContext } from '@/context/TokenContext';
 import { useCookies } from 'react-cookie';
 import { validateToken } from '@/utils/validators';
 

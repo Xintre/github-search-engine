@@ -13,31 +13,26 @@ import {
 } from '@mui/material';
 import {
 	DATA_GRID_PAGE_SIZES,
-	GH_API_TOKEN_COOKIE_NAME,
 	TEST_DISABLE_USEQUERY_CACHING,
 } from '@/utils/constants';
-import {
-	DataGrid,
-	GridColDef,
-	GridPaginationModel,
-	GridSortModel,
-} from '@mui/x-data-grid';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import Image from 'next/image';
+import { OpenGHProfileButton } from '@/components/OpenGHProfileButton';
 import { ProfileTypeFilter } from './ProfileTypeFilter';
-import { User } from '@/dto/User';
+import { SearchedUser } from '@/dto/SearchedUser';
+import { TokenContext } from '@/context/TokenContext';
 import { UserSearchResponse } from '@/dto/UserSearchResponse';
 import _ from 'lodash';
 import { fetchGET } from '@/utils/apiClient';
 import moment from 'moment';
-import { useCookies } from 'react-cookie';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 
 const gridColumnsDefFactory: (
 	router: ReturnType<typeof useRouter>
-) => GridColDef<User>[] = (router) => [
+) => GridColDef<SearchedUser>[] = (router) => [
 	{
 		field: 'avatar_url',
 		headerName: 'Avatar',
@@ -68,18 +63,25 @@ const gridColumnsDefFactory: (
 	{
 		field: 'id',
 		headerName: 'ID',
+		sortable: false,
 	},
 	{
 		field: 'login',
 		headerName: 'Login',
-		sortable: true,
+		sortable: false,
 		width: 400,
+	},
+	{
+		field: 'type',
+		headerName: 'Type',
+		sortable: false,
+		width: 100,
 	},
 	{
 		field: 'repos',
 		headerName: 'Go to repositories',
 		sortable: false,
-		width: 300,
+		width: 150,
 		renderCell: (params) => (
 			<Button
 				onClick={() => {
@@ -89,6 +91,21 @@ const gridColumnsDefFactory: (
 				repos
 			</Button>
 		),
+	},
+	{
+		field: 'html_url',
+		headerName: 'Go to profile',
+		sortable: false,
+		width: 150,
+		renderCell: (params) => (
+			<OpenGHProfileButton link={params.row.html_url} />
+		),
+	},
+	{
+		field: 'score',
+		headerName: 'Score',
+		sortable: false,
+		width: 100,
 	},
 ];
 
@@ -119,15 +136,18 @@ export default function UsersScreen() {
 	const [filterBuffer, setFilterBuffer] = useState('');
 	const [profileTypeFilter, setProfileTypeFilter] =
 		useState<ProfileTypeFilter>(ProfileTypeFilter.ALL);
-	const [sortInfo, setSortInfo] = useState<GridSortModel[number] | null>(
-		null
-	);
+	// I would use the below if GH API would support sorting users
+	// const [sortInfo, setSortInfo] = useState<GridSortModel[number] | null>(
+	// 	null
+	// );
 	const [paginationInfo, setPaginationInfo] = useState<GridPaginationModel>({
 		page: 0,
 		pageSize: DATA_GRID_PAGE_SIZES[0],
 	});
 	const router = useRouter();
 	const columnsDef = useMemo(() => gridColumnsDefFactory(router), [router]);
+
+	const { token } = useContext(TokenContext);
 
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const debouncedFilterChanged = useCallback(
@@ -137,19 +157,11 @@ export default function UsersScreen() {
 		[]
 	);
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const [cookies, _setCookie, _removeCookie] = useCookies([
-		GH_API_TOKEN_COOKIE_NAME,
-	]);
-	const token = cookies[GH_API_TOKEN_COOKIE_NAME];
-
 	const { isError, error, isLoading, data, dataUpdatedAt, isFetched } =
 		useQuery({
 			queryKey: [
 				'users',
 				filter,
-				sortInfo?.field,
-				sortInfo?.sort,
 				paginationInfo.page,
 				paginationInfo.pageSize,
 				profileTypeFilter,
@@ -158,21 +170,22 @@ export default function UsersScreen() {
 			queryFn: async () => {
 				const urlSearchParams = new URLSearchParams();
 
-				// query & type filter
+				// query & type filter + sorting
 				urlSearchParams.append(
 					'q',
 					[
-						// user query
+						// user query filter
 						filter.length === 0
 							? // by default if no query is present, show users starting with 'a'
 								'a'
 							: filter,
-						// type
+
+						// type filter
 						profileTypeFilter === ProfileTypeFilter.ALL
 							? null // if all, then don't set this filter
 							: `type:${profileTypeFilter}`,
 					]
-						.filter((x) => x !== null)
+						.filter((x) => !!x)
 						.join(' ')
 				);
 
@@ -185,7 +198,7 @@ export default function UsersScreen() {
 
 				const response = await fetchGET<UserSearchResponse>({
 					url: `search/users?${urlSearchParams.toString()}`,
-					token,
+					token: token!,
 				});
 
 				// notify useQuery that we failed
@@ -199,9 +212,9 @@ export default function UsersScreen() {
 			},
 		});
 
-	const handleSortModelChange = useCallback((sortModel: GridSortModel) => {
-		setSortInfo(sortModel.length ? sortModel[0] : null);
-	}, []);
+	// const handleSortModelChange = useCallback((sortModel: GridSortModel) => {
+	// 	setSortInfo(sortModel.length ? sortModel[0] : null);
+	// }, []);
 
 	const handlePaginationModelChange = useCallback(
 		(paginationModel: GridPaginationModel) => {
@@ -297,7 +310,7 @@ export default function UsersScreen() {
 				onPaginationModelChange={handlePaginationModelChange}
 				loading={isLoading}
 				sortingMode="server"
-				onSortModelChange={handleSortModelChange}
+				// onSortModelChange={handleSortModelChange}
 			/>
 		</Container>
 	);

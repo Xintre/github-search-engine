@@ -40,6 +40,7 @@ import {
 
 import { OpenGHProfileButton } from '@/components/OpenGHProfileButton';
 import { Repository } from '@/dto/Repository';
+import { RepositorySearchResponse } from '@/dto/RepositorySearchResponse';
 import { TokenContext } from '@/context/TokenContext';
 import { User } from '@/dto/User';
 import { fetchGET } from '@/utils/apiClient';
@@ -54,7 +55,7 @@ const gridColumnsDefFactory: (
 	{
 		field: 'name',
 		headerName: `Repo's name`,
-		sortable: true,
+		sortable: false,
 		width: 250,
 	},
 	{
@@ -66,7 +67,7 @@ const gridColumnsDefFactory: (
 		field: 'description',
 		headerName: 'Description',
 		sortable: false,
-		width: 600,
+		width: 450,
 		valueFormatter: (params) => {
 			return params === null ? 'No description provided' : params;
 		},
@@ -88,6 +89,16 @@ const gridColumnsDefFactory: (
 		},
 	},
 	{
+		field: 'stargazers_count',
+		headerName: 'Stars',
+		sortable: true,
+	},
+	{
+		field: 'forks_count',
+		headerName: 'Forks',
+		sortable: true,
+	},
+	{
 		field: 'html_url',
 		headerName: 'Go to repo',
 		sortable: false,
@@ -104,6 +115,7 @@ export default function UserDetailsAndRepos({
 }) {
 	const { username } = use(params);
 	const { token } = useContext(TokenContext);
+	const [totalCount, setTotalCount] = useState(0);
 	const [sortInfo, setSortInfo] = useState<GridSortModel[number] | null>(
 		null
 	);
@@ -151,10 +163,15 @@ export default function UserDetailsAndRepos({
 			'repositories',
 			paginationInfo.page,
 			paginationInfo.pageSize,
+			sortInfo?.field,
+			sortInfo?.sort,
 		],
 		gcTime: TEST_DISABLE_USEQUERY_CACHING ? 0 : undefined,
 		queryFn: async () => {
 			const urlSearchParams = new URLSearchParams();
+
+			// only of the given user's
+			urlSearchParams.append('q', `user:${username}`);
 
 			// pagination
 			urlSearchParams.append(
@@ -168,12 +185,17 @@ export default function UserDetailsAndRepos({
 
 			// sorting
 			if (sortInfo && sortInfo.sort) {
-				urlSearchParams.append('sort', sortInfo.field);
+				// the mapping of sorting fields is different than response fields:
+				// https://docs.github.com/en/rest/search/search?apiVersion=2022-11-28#search-repositories:~:text=Parameters%20for%20%22Search%20repositories%22
+				const sortField =
+					sortInfo.field === 'forks_count' ? 'forks' : 'stars';
+
+				urlSearchParams.append('sort', sortField);
 				urlSearchParams.append('order', sortInfo.sort);
 			}
 
-			const response = await fetchGET<Repository[]>({
-				url: `/users/${username}/repos?${urlSearchParams.toString()}`,
+			const response = await fetchGET<RepositorySearchResponse>({
+				url: `/search/repositories?${urlSearchParams.toString()}`,
 				token: token!,
 			});
 
@@ -184,9 +206,16 @@ export default function UserDetailsAndRepos({
 				);
 			}
 
-			return response.data;
+			// store the total count in a separate state var so when
+			// the data is being fetched again on page change, MUI
+			// does not receive 0 total items for a while which
+			// would case it to reset the page to 0 as well
+			setTotalCount(response.data.total_count);
+
+			return response.data.items;
 		},
 	});
+
 	const handleSortModelChange = useCallback((sortModel: GridSortModel) => {
 		setSortInfo(sortModel.length ? sortModel[0] : null);
 	}, []);
@@ -356,7 +385,7 @@ export default function UserDetailsAndRepos({
 					) : (
 						<DataGrid
 							rows={repositoriesData}
-							rowCount={user?.public_repos ?? 0}
+							rowCount={totalCount}
 							columns={columnsDef}
 							initialState={{
 								pagination: {

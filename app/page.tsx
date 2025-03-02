@@ -224,7 +224,6 @@ export default function UsersScreen() {
 
 		console.error('Error fetching data', error);
 	}, [error]);
-	console.log({ paginationInfo });
 
 	return (
 		<Container style={{ width: '80%' }}>

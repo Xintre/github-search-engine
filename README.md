@@ -1,4 +1,8 @@
 ![CI](https://github.com/xintre/github-search-engine/actions/workflows/ci.yml/badge.svg)
+![CD](https://github.com/xintre/github-search-engine/actions/workflows/cd.yml/badge.svg)
+
+> [!NOTE]  
+> Try it out at 🎉 https://github-search-engine-xintre.vercel.app/ 🎉 (deployed automatically by CD workflow).
 
 This is a [Next.js](https://nextjs.org) Github Search Engine SPA (Single-Page App) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app) which is responsible for:
 - displaying a list of users
@@ -77,7 +81,7 @@ The app offers the following routes:
 
 ### Tooling
 
-- GH Actions for CI
+- GH Actions for CI & CD
 - `eslint` & `prettier` for code linting and formatting
 - `lefthook` for pre-commit & pre-push hooks
 - `jest` and `react-testing-library` with `@testing-library/user-event` for testing

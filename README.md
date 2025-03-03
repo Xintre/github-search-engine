@@ -91,3 +91,12 @@ The app offers the following routes:
 Tests include only one component and one unused component to demonstrate my skills in testing.
 
 The tests are run automatically on pre-push event & by the CI workflow.
+
+## CI / CD & branches
+
+The repository is configured to run the CI workflow on every push to any branch.
+
+CD will be run when a push to the [`main`](https://github.com/Xintre/github-search-engine/tree/main) branch is done. The development work flow would be to:
+- push / merge any changes possibly within multiple commits to the [`develop`](https://github.com/Xintre/github-search-engine/tree/develop) branch (CI will be run)
+- merge the develop branch to [`main`](https://github.com/Xintre/github-search-engine/tree/main) branch (CI & CD will be run to deploy the website to Vercel's servers)
+- the deployment will be available on https://github-search-engine-xintre.vercel.app/

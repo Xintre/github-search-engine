@@ -3,6 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
+		"prepare": "lefthook install",
 		"dev": "next dev",
 		"build": "next build",
 		"start": "next start",
@@ -42,6 +43,7 @@
 		"eslint-config-next": "15.1.7",
 		"jest": "^29.7.0",
 		"jest-environment-jsdom": "^29.7.0",
+		"lefthook": "^1.11.6",
 		"prettier": "^3.5.2",
 		"ts-node": "^10.9.2",
 		"typescript": "^5"
